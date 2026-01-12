@@ -1,0 +1,12 @@
+{
+    "servers": {
+        "encore-mcp": {
+            "args": [
+                "mcp",
+                "run",
+                "--app=tast-management-swsi"
+            ],
+            "command": "encore"
+        }
+    }
+}
