@@ -1,8 +1,8 @@
 //  business logic
 
 import { OrganizationRepo } from "./org.repo"
-import { APIError } from "@shared/errors/api-error"
-import { ErrCode } from "@shared/errors/err-code"
+import { APIError } from "encore.dev/api"
+import { ErrCode } from "encore.dev/api"
 
 export const OrganizationService  = {
      async getMyOrganization(

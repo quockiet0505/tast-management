@@ -1,7 +1,7 @@
 // business logic
 import { TaskRepo } from "./task.repo"
-import { APIError } from "@shared/errors/api-error"
-import { ErrCode } from "@shared/errors/err-code"
+import { APIError } from "encore.dev/api"
+import { ErrCode } from "encore.dev/api"
 
 import type { CreateTaskInput, UpdateTaskInput, ListTaskInput} from "./task.schema"
 

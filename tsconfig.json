@@ -6,17 +6,11 @@
     "target": "ES2022",
     "module": "ES2022",
     "types": ["node"],
-    "paths": {
-      "~encore/*": ["./encore.gen/*"]
-    },
 
     "strict": true,
 
     /* Workspace Settings */
     "composite": true,
-
-    /* Strict Type-Checking Options */
-    "strict": true,
 
     /* Module Resolution Options */
     "moduleResolution": "bundler",
@@ -38,7 +32,8 @@
       "@db/*": ["packages/db/*"],
 
       "@api/*": ["app/api/*"],
-      "@shared/*": ["app/api/shared/*"]
+      "@shared/*": ["app/api/shared/*"],
+      "~encore/*": ["./encore.gen/*"]
     }
     
   }

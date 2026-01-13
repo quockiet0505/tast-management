@@ -9,76 +9,83 @@
 // Có body → (body, ctx)
 // Có cả params + body → (params, body, ctx)
 
-import { api } from "encore.dev/api"
+import { api, APIError } from "encore.dev/api"
 import { TaskService } from "./task.service"
 import {
      CreateTaskSchema,
      UpdateTaskSchema,
      ListTaskSchema
    } from "./task.schema"
-   
+import { getAuthData } from "~encore/auth";
+import { AuthData } from "../auth/auth";
    
 //    - `POST /v1/tasks` - List tasks (with filters)
 export const listTasks = api(
-     { method: "POST", path: "v1/tasks"},
+     { method: "POST", path: "/v1/tasks", auth: true},
      async (body: object) => {
+      // getAuthData
        const input = ListTaskSchema.parse(body)
-       const { organizationId } = getAuthData<{ organizationId: string }>()
-       return TaskService.getList(input, { organizationId })
-     }
-   )
-   
-//    - `GET /v1/tasks/:id` - Get task details
-export const getTaskDetails = api(
-     { method: "GET", path: "v1/tasks/:id" },
-     async (params: { id: string }) => {
-       const { organizationId } = getAuthData<{ organizationId: string }>()
-       return TaskService.getDetails({
-         id: params.id,
-         organizationId,
+       const authData = getAuthData() as unknown as AuthData | undefined;
+
+       if (!authData) throw APIError.unauthenticated("missing auth");
+       return TaskService.getList(input, {
+         organizationId: authData.organizationID,
        })
      }
    )
-   
-//    - `POST /v1/tasks/create` - Create task
-export const createTask = api(
-     { method: "POST", path: "v1/tasks/create" },
-     async (body: object) => {
-       const input = CreateTaskSchema.parse(body)
-       const { organizationId } = getAuthData<{ organizationId: string }>()
-       return TaskService.createTask(input, { organizationId })
+//    - `GET /v1/tasks/:id` - Get task details
+export const getTaskDetails = api(
+     { method: "GET", path: "/v1/tasks/:id" , auth: true},
+     async (params: { id: string }) => {
+       const authData = getAuthData() as unknown as AuthData | undefined;
+
+       if (!authData) throw APIError.unauthenticated("missing auth");
+       return TaskService.getDetails({
+          id: params.id,
+          organizationId: authData.organizationID,
+       })
      }
    )
-     
+//    - `POST /v1/tasks/create` - Create task
+export const createTask = api(
+     { method: "POST", path: "/v1/tasks/create" , auth: true},
+     async (body: object) => {
+       const input = CreateTaskSchema.parse(body)
+       const authData = getAuthData() as unknown as AuthData | undefined;
+
+       if (!authData) throw APIError.unauthenticated("missing auth");
+       return TaskService.createTask(input, { organizationId : authData.organizationID } )
+     }
+   )
 //    - `PUT /v1/tasks/:id` - Update task
 type UpdateTaskParams = { id: string } & Record<string, unknown>
 export const updateTask = api(
-     { method: "PUT", path: "v1/tasks/:id" },
+     { method: "PUT", path: "/v1/tasks/:id", auth: true },
      async (params: UpdateTaskParams) => {
        const { id, ...payload } = params as UpdateTaskParams
        const input = UpdateTaskSchema.parse(payload)
-       const { organizationId } = getAuthData<{ organizationId: string }>()
+       const authData = getAuthData() as unknown as AuthData | undefined;
+
+       if (!authData) throw APIError.unauthenticated("missing auth");
        return TaskService.updateTask(input, {
          id,
-         organizationId,
+         organizationId: authData.organizationID,
        })
      }
    )
-    
 //    - `DELETE /v1/tasks/:id` - Delete task
 export const deleteTask = api(
-     { method: "DELETE", path: "v1/tasks/:id" },
+     { method: "DELETE", path: "/v1/tasks/:id", auth: true },
      async (params: { id: string }) => {
-       const { organizationId } = getAuthData<{ organizationId: string }>()
+      const authData = getAuthData() as unknown as AuthData | undefined;
+      
+       if (!authData) throw APIError.unauthenticated("missing auth");
        return TaskService.deleteTask({
          id: params.id,
-         organizationId,
+         organizationId: authData.organizationID,
        })
      }
    )
-   
 
-function getAuthData<T>(): { organizationId: any } {
-     throw new Error("Function not implemented.")
-}
+
    

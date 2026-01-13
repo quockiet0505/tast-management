@@ -1,88 +1,102 @@
-// Check email, hash password, generate JWT token, flow
-import bcrypt  from "bcryptjs"
+// auth.service.ts
+import { auth } from "./auth" 
 import { AuthRepo } from "./auth.repo"
-import { APIError } from "@shared/errors/api-error"
-import { ErrCode } from "@shared/errors/err-code"
-
-import type { RegisterInput, LoginInput} from "./auth.schema"
-var jwt = require("jsonwebtoken")
-
-const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-key"
+import { APIError } from "encore.dev/api";
+import { ErrCode } from "encore.dev/api";
+import type { RegisterInput, LoginInput } from "./auth.schema"
 
 export const AuthService = {
-     async register(input: RegisterInput){
-          // check email exists
-          const existingUser = await AuthRepo.findUserByEmail({
-               email: input.email,
-          })
+  async register(input: RegisterInput) {
+    // check email 
+    const existingUser = await AuthRepo.findUserByEmail({
+      email: input.email,
+    });
 
-          if(existingUser){
-               throw new APIError(
-                    ErrCode.BadRequest, "Email already in user!"
-               )
-          }
+    if (existingUser.length !== 0) {
+      throw new APIError(
+        ErrCode.AlreadyExists,
+        "Email is already registered"
+      )
+    }
 
-          // hash password
-          const passwordHash = await bcrypt.hash(input.password, 10)
-          const [user] = await AuthRepo.createUser({
-               email: input.email,
-               passwordHash,
-             });
-
-          // create organization
-          const [organization] = await AuthRepo.createOrganization({
-               name: input.organizationName
-          })
-
-          // add organization member
-          await AuthRepo.addOrganizationMember({
-               userId: user.id,
-               organizationId: organization.id,
-               role: "admin",
-          })
-
-          return {
-               userId: user.id,
-               organizationId: organization.id
-          }
-
+    //  user  Better-Auth, hash password
+    const result = await auth.api.signUpEmail({
+     body: {  
+       email: input.email,
+       password: input.password,
+       name: input.email.split('@')[0], 
      },
+   });
 
-     async login(input: LoginInput){
-          const [user] = await AuthRepo.findUserByEmail({
-               email: input.email,
-          })
-
-          if(!user){
-               throw new APIError(
-                    ErrCode.Unauthenticated, "Invalid email or credentials!"
-               )
-          }
-
-          const isPasswordValid = await bcrypt.compare(
-               input.password,
-               user.passwordHash,
-          )
-
-          if(!isPasswordValid){
-               throw new APIError(
-                    ErrCode.BadRequest,"Invalid email or password!"
-               )
-          }
-
-          // sign in token
-          const token = jwt.sign(
-               {
-                    userId: user.id,
-               },
-               JWT_SECRET,
-               {
-                    expiresIn: "7d",
-               }
-          )
-
-          return user;
-
-
+   if(!result || !result.user || !result.token){
+          throw new APIError(
+          ErrCode.Unauthenticated,
+          "Registration failed"
+          );
      }
-}
+   
+    // organization 
+    const [organization] = await AuthRepo.createOrganization({
+      name: input.organizationName
+    });
+
+    // user add organization
+    await AuthRepo.addOrganizationMember({
+      userId: result.user.id,
+      organizationId: organization.id,
+      role: "member",
+    });
+
+    // session token
+    return {
+      user: {
+        id: result.user.id,
+        email: result.user.email,
+      },
+      organization: {
+        id: organization.id,
+        name: organization.name,
+      },
+      session: {
+          token: result.token,  // Dùng result.token instead of session.token
+          expiresAt: new Date(Date.now() + 60 * 60 * 24 * 7 * 1000) // 7 days
+      }
+    };
+  },
+
+  async login(input: LoginInput) {
+    // Login với Better-Auth
+    const result = await auth.api.signInEmail({
+     body: {  
+       email: input.email,
+       password: input.password,
+     },
+   });
+
+
+    if (!result || !result.user || !result.token) {
+      throw new APIError(
+        ErrCode.Unauthenticated,
+        "Invalid email or password"
+      );
+    }
+
+    //   organization context
+    const member = await AuthRepo.getUserOrganization({ userId: result.user.id });
+
+    return {
+      user: {
+        id: result.user.id,
+        email: result.user.email,
+      },
+      organization: member ? {
+        id: member.organizationId,
+        role: member.role
+      } : null,
+      session: {
+        token: result.token,
+        expiresAt: new Date(Date.now() + 60 * 60 * 24 * 7 * 1000) // 7 days
+      }
+    };
+  }
+};

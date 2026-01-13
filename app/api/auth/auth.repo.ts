@@ -7,12 +7,7 @@ import { eq } from "drizzle-orm";
 
 export const AuthRepo = {
 
-//   findUserByEmail(data: { email: string }) {
-//     return db.query.users.findFirst({
-//       where: eq(users.email, data.email),
-//     });
-//   },
-     findUserByEmail(data: { email: string }) {
+  findUserByEmail(data: { email: string }) {
           return db
           .select()
           .from(users)
@@ -50,5 +45,14 @@ export const AuthRepo = {
       organizationId: data.organizationId,
       role: data.role,
     });
+  },
+
+  // getUserOrganization
+  getUserOrganization(data: { userId: string }) {
+    return db
+      .select()
+      .from(organizationMembers)
+      .where(eq(organizationMembers.userId, data.userId))
+      .then((res) => res[0]);
   },
 };

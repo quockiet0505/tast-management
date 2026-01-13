@@ -1,4 +1,4 @@
-import {z} from "zod"
+import * as z from "zod"; 
 
 // create
 export const CreateOrganizationSchema = z.object({

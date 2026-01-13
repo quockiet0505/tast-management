@@ -1,5 +1,5 @@
 // validate request from body
-import {z} from "zod"
+import * as z from "zod"; 
 
 export const TaskStatusSchema = z.enum([
      "todo",
